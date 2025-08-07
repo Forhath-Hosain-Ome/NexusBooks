@@ -1,0 +1,112 @@
+### **Entity-Relationship Diagram (ERD) for "NexusBooks" Online Bookstore**  
+**Version:** 1.0  
+**Date:** 2025-08-07  
+
+---
+
+**1. Core Entities**  
+| **Entity**       | **Attributes**                                                                 | **PK/FK**       |  
+|------------------|-------------------------------------------------------------------------------|----------------|  
+| **User**         | `user_id (PK)`, `email`, `password_hash`, `first_name`, `last_name`, `role` (`customer`/`admin`), `created_at`, `last_login` | PK: `user_id` |  
+| **Book**         | `book_id (PK)`, `isbn`, `title`, `description`, `price`, `stock_quantity`, `cover_url`, `published_date`, `avg_rating` | PK: `book_id` |  
+| **Order**        | `order_id (PK)`, `user_id (FK)`, `order_date`, `total_amount`, `status` (`pending`/`shipped`/etc.), `shipping_address`, `promo_code` | PK: `order_id`<br>FK: `user_id` → User |  
+| **OrderItem**    | `order_item_id (PK)`, `order_id (FK)`, `book_id (FK)`, `quantity`, `unit_price_at_order` | PK: `order_item_id`<br>FK: `order_id` → Order<br>FK: `book_id` → Book |  
+| **Review**       | `review_id (PK)`, `user_id (FK)`, `book_id (FK)`, `rating` (1-5), `comment`, `created_at`, `updated_at` | PK: `review_id`<br>FK: `user_id` → User<br>FK: `book_id` → Book |  
+| **Payment**      | `payment_id (PK)`, `order_id (FK)`, `transaction_id`, `amount`, `method` (`stripe`/`paypal`), `status` (`success`/`failed`), `timestamp` | PK: `payment_id`<br>FK: `order_id` → Order |  
+| **Cart**         | `cart_id (PK)`, `user_id (FK)`, `created_at`, `expires_at` (30 days)          | PK: `cart_id`<br>FK: `user_id` → User |  
+| **CartItem**     | `cart_item_id (PK)`, `cart_id (FK)`, `book_id (FK)`, `quantity`               | PK: `cart_item_id`<br>FK: `cart_id` → Cart<br>FK: `book_id` → Book |  
+| **Category**     | `category_id (PK)`, `name` (e.g., "Fiction", "Science")                       | PK: `category_id` |  
+| **PromoCode**    | `code (PK)`, `discount_type` (`percentage`/`fixed`), `discount_value`, `valid_from`, `valid_until`, `max_uses` | PK: `code` |  
+| **AuditLog**     | `log_id (PK)`, `admin_user_id (FK)`, `action` (e.g., "UPDATE_BOOK"), `entity_type`, `entity_id`, `ip_address`, `timestamp` | PK: `log_id`<br>FK: `admin_user_id` → User |  
+
+---
+
+**2. Relationship Mapping**  
+| **Relationship**                     | **Type**        | **Description**                                                                 |  
+|--------------------------------------|----------------|--------------------------------------------------------------------------------|  
+| **User** — **Order**                 | One-to-Many    | One user can place many orders.                                                |  
+| **User** — **Review**                | One-to-Many    | One user can write many reviews.                                               |  
+| **User** — **Cart**                  | One-to-One     | One user has one active cart.                                                  |  
+| **Book** — **Review**                | One-to-Many    | One book can have many reviews.                                                |  
+| **Book** — **OrderItem**             | One-to-Many    | One book can appear in many order items.                                       |  
+| **Book** — **CartItem**              | One-to-Many    | One book can be in many carts.                                                 |  
+| **Book** — **Category**              | Many-to-Many   | A book can belong to multiple categories; a category contains multiple books. *(Junction Table: `BookCategory`)* |  
+| **Order** — **OrderItem**            | One-to-Many    | One order contains many items.                                                 |  
+| **Order** — **Payment**              | One-to-One     | One order has one payment record.                                              |  
+| **Cart** — **CartItem**              | One-to-Many    | One cart contains many items.                                                  |  
+| **Order** — **PromoCode**            | Many-to-One    | Many orders can use one promo code (nullable).                                 |  
+| **Admin (User)** — **AuditLog**      | One-to-Many    | One admin user triggers many audit logs.                                       |  
+
+---
+
+**3. Junction Tables**  
+**BookCategory** (Resolves M:N between Book and Category)  
+| **Attribute**    | **Type**        |  
+|------------------|----------------|  
+| `book_id (FK)`   | References `Book.book_id` |  
+| `category_id (FK)`| References `Category.category_id` |  
+*(Composite PK: (`book_id`, `category_id`)*  
+
+---
+
+**4. Critical Constraints**  
+1. **User Roles:**  
+   - `User.role` restricted to: `customer`, `admin`.  
+   - Only `admin` can modify `Book.stock_quantity` or access `AuditLog`.  
+
+2. **Data Integrity:**  
+   - `OrderItem.unit_price_at_order` captures price at purchase (immutable).  
+   - `Cart.expires_at` automatically set to `created_at + 30 days`.  
+
+3. **Security:**  
+   - `User.password_hash` uses bcrypt encryption.  
+   - `Payment.transaction_id` encrypted at rest (AES-256).  
+
+4. **Indexes:**  
+   - `Book.isbn` (Unique)  
+   - `User.email` (Unique)  
+   - `Order.status` (Filtering)  
+   - `Book.title` (Full-text search)  
+
+---
+
+**5. ERD Schema Visualization**  
+```plaintext
+┌───────────┐       ┌───────────┐        ┌───────────┐  
+│   User    │1─────<│   Order   │1───────│  Payment  │  
+└───────────┘       └───────────┘        └───────────┘  
+     │1                   │1                     Λ  
+     │                    │                      │  
+     ∨                    ∨                      │  
+┌───────────┐       ┌───────────┐        ┌───────────┐  
+│  Review   │       │ OrderItem │>───────│   Book    │  
+└───────────┘       └───────────┘        └───────────┘  
+     Λ                      Λ                  │1  
+     │                      │                  │  
+     │                      │                  ∨  
+┌───────────┐       ┌───────────┐        ┌───────────┐  
+│   Cart    │1─────<│ CartItem  │        │ Category  │  
+└───────────┘       └───────────┘        └───────────┘  
+     Λ                                         Λ  
+     │                                         │  
+     │                                         │  
+┌───────────┐        ┌────────────┐      ┌───────────┐  
+│ PromoCode │<───────│  AuditLog  │      │ BookCategory (Junction) │  
+└───────────┘        └────────────┘      └───────────┘  
+```
+
+---
+
+**6. Notes**  
+- **Inventory Tracking:** `Book.stock_quantity` decremented on successful payment.  
+- **Cart Persistence:** `Cart` and `CartItem` persist for 30 days (server-side).  
+- **Audit Trail:** `AuditLog` records admin actions (e.g., book price/stock updates).  
+- **Soft Deletes:** All entities use `is_deleted` flags (not shown) for GDPR compliance.  
+- **Full-Text Search:** `Book.title` and `Book.description` indexed in ElasticSearch.  
+
+---  
+**Approved By:**  
+- *Lead Architect*  
+- *Database Administrator*  
+- *Security Officer*  
+**Date:** 2025-08-07

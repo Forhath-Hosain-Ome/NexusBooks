@@ -1,0 +1,197 @@
+**System Architecture for "NexusBooks" Online Bookstore (Django)**  
+**Version:** 1.0  
+**Date:** 2025-08-07  
+
+---
+
+**1. High-Level Architecture Overview** 
+
+---
+
+**2. Component Breakdown**  
+**2.1 Client Layer**  
+- **Frontend**: Django Templates (HTML/CSS/JS) + HTMX for dynamic interactions  
+- **Admin Portal**: Django Admin (customized) + Chart.js for dashboards  
+- **API Consumers**: Mobile apps (future) via DRF (Django REST Framework)  
+
+**2.2 Web/Proxy Layer**  
+- **Nginx**:  
+  - Reverse proxy for Gunicorn  
+  - SSL termination (TLS 1.3)  
+  - Static file serving  
+  - Rate limiting (100 req/sec/IP)  
+  - CORS management  
+
+**2.3 Application Layer**  
+- **Django Monolith** (Modular Apps):  
+  ```python
+  # Project Structure
+  nexusbooks/
+  ├── apps/
+  │   ├── users/          # Authentication, profiles
+  │   ├── catalog/        # Books, categories, search
+  │   ├── cart/           # Shopping cart logic
+  │   ├── orders/         # Order processing
+  │   ├── payments/       # Stripe/PayPal integration
+  │   ├── reviews/        # Ratings and reviews
+  │   └── analytics/      # Admin dashboards
+  ├── config/             # Settings (base.py, prod.py, dev.py)
+  └── static/             # CSS, JS, images
+  ```
+- **Gunicorn**:  
+  - Pre-fork worker model (4 workers + 2 threads/worker)  
+  - Graceful reload on deploy  
+
+**2.4 Data Layer**  
+| **Component**       | **Purpose**                                  | **Django Integration**                     |  
+|---------------------|---------------------------------------------|-------------------------------------------|  
+| **PostgreSQL 15**   | Primary OLTP database                       | `django.db.backends.postgresql`           |  
+| **Redis 7**         | Session storage, cache, Celery broker       | `django-redis`, `celery`                  |  
+| **Elasticsearch 8** | Full-text search (books)                    | `django-elasticsearch-dsl`               |  
+
+**2.5 Service Layer**  
+- **Celery**:  
+  - Async tasks (email notifications, report generation)  
+  - Periodic tasks (stock alerts, cart expiration)  
+  - Beat scheduler for cron jobs  
+- **External Integrations**:  
+  - **Stripe API**: PCI-compliant payments  
+  - **SendGrid API**: Transactional emails  
+  - **Prometheus**: Metrics collection via `django-prometheus`  
+
+---
+
+**3. Django App-Specific Implementation**  
+
+**3.1 Users App**  
+```python
+# models.py
+class User(AbstractUser):
+    ROLE_CHOICES = [('customer', 'Customer'), ('admin', 'Admin')]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
+    email = models.EmailField(unique=True)
+    last_login = models.DateTimeField(auto_now=True)
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=20, blank=True)
+```
+
+**3.2 Catalog App**  
+```python
+# search.py (Elasticsearch integration)
+class BookDocument(Document):
+    title = fields.TextField(analyzer='english')
+    description = fields.TextField(analyzer='english')
+    
+    class Django:
+        model = Book
+        fields = ['isbn', 'price', 'stock_quantity']
+```
+
+**3.3 Payments App**  
+```python
+# views.py (Stripe Webhook)
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+        handle_payment_event(event)  # Async task
+    except ValueError:
+        return HttpResponse(status=400)
+    return HttpResponse(status=200)
+```
+
+---
+
+**4. Security Architecture**  
+| **Layer**          | **Measures**                                                                 |  
+|--------------------|-----------------------------------------------------------------------------|  
+| **Network**        | - WAF (Web Application Firewall) rules<br>- VPC isolation<br>- Security Groups |  
+| **Application**    | - Django: `SECURE_HSTS_SECONDS`, `CSRF_COOKIE_HTTPONLY`<br>- Password validation (zxcvbn)<br>- JWT authentication (DRF) |  
+| **Data**           | - AES-256 encryption at rest (PostgreSQL TDE)<br>- Redis ACLs<br>- Elasticsearch TLS |  
+| **Monitoring**     | - OSSEC IDS for file integrity<br>- Audit logs to ELK<br>- OWASP ZAP weekly scans |  
+
+---
+
+**5. Deployment Architecture**  
+```yaml
+# docker-compose.prod.yml (Partial)
+services:
+  web:
+    image: nexusbooks-web:${VERSION}
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    env_file: .env.prod
+    depends_on:
+      - db
+      - redis
+      - elasticsearch
+
+  db:
+    image: postgres:15
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+
+  celery:
+    image: nexusbooks-web:${VERSION}
+    command: celery -A config worker -l INFO
+    env_file: .env.prod
+```
+
+**Cloud Infrastructure**:  
+- **AWS**: ECS Fargate (containers), RDS PostgreSQL, ElasticCache Redis  
+- **CDN**: CloudFront for static assets  
+- **Secrets Management**: AWS Secrets Manager for DB credentials  
+
+---
+
+**6. Performance Optimization**  
+1. **Caching**:  
+   - Redis for:  
+     - Session storage (`django-redis`)  
+     - Database query caching (`django-redis-cache`)  
+     - Full-page cache for anonymous users  
+2. **Database**:  
+   - Read replicas for reporting  
+   - `pgBouncer` for connection pooling  
+   - GIN indexes for JSON fields  
+3. **Search**:  
+   - Elasticsearch sharding (3 shards per index)  
+   - Asynchronous indexing via Celery  
+
+---
+
+**7. Monitoring & Observability**  
+| **Tool**           | **Purpose**                                                                 |  
+|--------------------|-----------------------------------------------------------------------------|  
+| **Prometheus**     | Metrics: Django request latency, DB query times, cache hit rates            |  
+| **Grafana**        | Dashboards: API performance, error rates, system resources                 |  
+| **ELK Stack**      | Log analysis: Audit trails, security events, application logs              |  
+| **Sentry**         | Real-time error tracking with stack traces                                 |  
+
+---
+
+**8. Disaster Recovery**  
+- **Database**: Daily snapshots + point-in-time recovery (RDS)  
+- **Data Replication**:  
+  - Cross-AZ redundancy for PostgreSQL/Redis  
+  - Elasticsearch cluster across 3 AZs  
+- **Backup**: Encrypted S3 backups (7-day retention)  
+
+---
+
+**Approved By:**  
+- *Lead DevOps Engineer*  
+- *Security Architect*  
+- *Django Technical Lead*  
+**Date:** 2025-08-07  
+
+---  
+*This architecture supports 99.9% SLA, scales to 10k RPM, and complies with GDPR/CCPA/PCI DSS.*

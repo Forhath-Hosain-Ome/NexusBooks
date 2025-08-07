@@ -39,7 +39,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     'apps.cart.apps.CartConfig',
-    'apps.orders.apps.OrdersConfig'
+    'apps.orders.apps.OrdersConfig',
+    'apps.analytics.apps.AnalyticsConfig',
+    'apps.catalog.apps.CatalogConfig',
+    'apps.payments.apps.PaymentsConfig',
+    'apps.reviews.apps.ReviewsConfig',
+    'apps.users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -123,3 +128,4 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = 'users.User'

@@ -1,3 +1,6 @@
+https://openlibrary.org/
+
+
 **System Architecture for "NexusBooks" Online Bookstore (Django)**  
 **Version:** 1.0  
 **Date:** 2025-08-07  

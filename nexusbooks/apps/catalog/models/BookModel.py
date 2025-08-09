@@ -21,4 +21,4 @@ class Book(models.Model):
     cover_url = models.ImageField(upload_to=media_upload_path)
     published_date = models.DateField()
     avg_rating = models.FloatField()
-    category = models.ManyToManyField(Category, limit_choices_to=Category.name)
+    category = models.ManyToManyField(Category)

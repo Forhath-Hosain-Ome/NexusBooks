@@ -1,1 +1,1 @@
-from .upload_path import media_upload_path
+from .upload_path import UploadToFolder

@@ -1,0 +1,58 @@
+<nav class="navbar navbar-expand-lg navbar-light" style="background-color: #E3DAC0;">
+  <div class="container-fluid">
+    <!-- Logo -->
+    <a class="navbar-brand d-flex align-items-center" href="#">
+      <img src="path-to-your-open-logo.png" alt="Open" style="height: 24px; margin-right: 5px;">
+      <span style="font-family: serif; font-weight: 400; font-size: 24px;">LIBRARY</span>
+    </a>
+
+    <!-- Hamburger toggler -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Navbar content -->
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <!-- Left menu -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center">
+        <li class="nav-item">
+          <a class="nav-link" href="#">My Books</a>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="browseDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Browse
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="browseDropdown">
+            <li><a class="dropdown-item" href="#">Option 1</a></li>
+            <li><a class="dropdown-item" href="#">Option 2</a></li>
+            <li><a class="dropdown-item" href="#">Option 3</a></li>
+          </ul>
+        </li>
+      </ul>
+
+      <!-- Search form -->
+      <form class="d-flex align-items-center me-3" role="search" style="gap: 5px;">
+        <select class="form-select form-select-sm" style="width: 80px;">
+          <option selected>All</option>
+          <option value="1">Books</option>
+          <option value="2">Authors</option>
+          <option value="3">Subjects</option>
+        </select>
+        <input class="form-control form-control-sm" type="search" placeholder="Search" aria-label="Search" style="min-width: 200px;">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-search"></i> <!-- Bootstrap Icons search -->
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm ms-2">
+          <i class="bi bi-upc-scan"></i> <!-- Barcode icon -->
+        </button>
+      </form>
+
+      <!-- Auth buttons -->
+      <div class="d-flex align-items-center gap-2">
+        <a href="#" class="btn btn-link btn-sm text-dark">Log In</a>
+        <a href="#" class="btn btn-primary btn-sm">Sign Up</a>
+      </div>
+    </div>
+  </div>
+</nav>

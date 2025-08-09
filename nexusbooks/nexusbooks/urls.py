@@ -10,4 +10,5 @@ urlpatterns = [
     path('payments',include('apps.payments.urls')),
     path('reviews',include('apps.reviews.urls')),
     path('users',include('apps.users.urls')),
+    path('',include('apps.navigation.urls')),
 ]

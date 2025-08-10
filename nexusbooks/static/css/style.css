@@ -7,6 +7,19 @@ h1,h2,h3,h4,h5,h6,p,a,span{
   margin: 5px auto;
 }
 
+.carosal .carosal-item{
+  width: 45vw;
+  background-color: #fcfbf7;
+  border: 1px solid #ddd;
+  padding: 25px;
+
+}
+
+
+
+
+
+
 .footer-title{
   font-size: 1em;
   color: #333 !important;

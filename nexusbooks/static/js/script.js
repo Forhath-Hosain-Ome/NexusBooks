@@ -1,4 +1,4 @@
-$('.carousel-container').slick({
+$('.carosal-item').slick({
   infinite: true,
   slidesToShow: 3,
   slidesToScroll: 3

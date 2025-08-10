@@ -1,6 +1,7 @@
 from django.db import models
 from .CategoryModel import Category
 from config.internal_routing import UploadToFolder
+from core.models import GenraChoice
 
 # Create your models here.
 class Book(models.Model):
@@ -14,3 +15,4 @@ class Book(models.Model):
     published_date = models.DateField()
     avg_rating = models.FloatField()
     category = models.ManyToManyField(Category)
+    genra = models.CharField(choices=GenraChoice, default='', null=True)

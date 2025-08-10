@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     'apps.users.apps.UsersConfig',
     'apps.navigation.apps.NavigationConfig',
 
+    'core.apps.CoreConfig',
+
 ]
 
 MIDDLEWARE = [
